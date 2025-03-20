@@ -13,7 +13,7 @@ This project shows an example of **Blood Glucose Meters** using the **Thunderboa
 
 The project implemented the Bluetooth glucose meter, which has the ability to wirelessly connect to your smart device to conveniently capture glucose data and provide added health monitoring features.
 
-## Gecko SDK version
+## SDK version
 
 - GSDK v4.4.0
 

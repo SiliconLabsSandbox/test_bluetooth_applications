@@ -88,13 +88,13 @@ jobs:
         pre-commit install
         pre-commit run --all-files 2>&1 | tee CodingConventionTool.txt
 
-    - name: Upload Result
-      if: always()
-      uses: actions/upload-artifact@v4.3.4
-      with:
-        name: CodingConventionResult
-        path: CodingConventionTool.txt
-        retention-days: 90
+    # - name: Upload Result
+    #   if: always()
+    #   uses: actions/upload-artifact@v4.3.4
+    #   with:
+    #     name: CodingConventionResult
+    #     path: CodingConventionTool.txt
+    #     retention-days: 90
 
     - name: Check log file to set status of the job
       run: |
@@ -102,8 +102,36 @@ jobs:
         for keyword in "${keywords[@]}"; do
           if grep -q "$keyword" CodingConventionTool.txt; then
             echo "Keyword '$keyword' found in the file."
+            git diff
+            
+            echo ==================
+            git diff --name-only > uncrustify_formatted_list.txt
+            # Failing build, we will send logs and the formatted files to output
+            if [ -s uncrustify_formatted_list.txt ]; then
+                mkdir uncrustify_formatted_files
+                lines=$(cat uncrustify_formatted_list.txt)
+                for line in $lines
+                do
+                    git --no-pager diff $line > $line.log
+                    echo "$line.log" >> uncrustify_log_list.txt
+                done
+                xargs -a uncrustify_formatted_list.txt cp --parents -n -t uncrustify_formatted_files/ &>> debug.log
+                xargs -a uncrustify_log_list.txt cp --parents -n -t uncrustify_formatted_files/ &>> debug.log
+                jar -cvf uncrustify_formatted_files.zip uncrustify_formatted_files/ &>> debug.log
+            fi
+            echo ==================            
+            
             exit 1
           else
             echo "Keyword '$keyword' not found in the file."
           fi
         done
+
+    - name: Upload Result
+      if: always()
+      uses: actions/upload-artifact@v4.3.4
+      with:
+        name: CodingConventionResult
+        path: uncrustify_formatted_files
+        retention-days: 90
+        if-no-files-found: ignore

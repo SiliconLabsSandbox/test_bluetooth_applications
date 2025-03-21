@@ -3,7 +3,7 @@ Project guideline
 
 ## Structure of projects
 
-Suported project type: .sls or .slcp
+Supported project type: .sls or .slcp
 
 ![image](doc/sandbox/project_structure.png)
 

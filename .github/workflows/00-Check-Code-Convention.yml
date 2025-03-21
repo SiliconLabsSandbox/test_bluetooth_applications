@@ -103,8 +103,7 @@ jobs:
           if grep -q "$keyword" CodingConventionTool.txt; then
             echo "Keyword '$keyword' found in the file."
             git diff
-            
-            echo ==================
+
             git diff --name-only > uncrustify_formatted_list.txt
             # Failing build, we will send logs and the formatted files to output
             if [ -s uncrustify_formatted_list.txt ]; then
@@ -119,8 +118,7 @@ jobs:
                 xargs -a uncrustify_log_list.txt cp --parents -n -t uncrustify_formatted_files/ &>> debug.log
                 jar -cvf uncrustify_formatted_files.zip uncrustify_formatted_files/ &>> debug.log
             fi
-            echo ==================            
-            
+
             exit 1
           else
             echo "Keyword '$keyword' not found in the file."

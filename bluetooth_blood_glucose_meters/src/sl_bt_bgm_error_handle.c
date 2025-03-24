@@ -35,6 +35,20 @@
  ******************************************************************************/
 #include "sl_bt_bgm.h"
 
+void test_sonar(uint8_t *pointer);
+// test fail Sonar
+void test_sonar(uint8_t *pointer) {
+  app_log("Must be failed sonar check");
+
+  char *buffer = malloc(100);
+  // Forgetting to free 'buffer'
+
+  int x;
+  if (x == 0) { 
+    app_log("Must be failed sonar check");
+  }  
+}
+
 /**************************************************************************//**
  * 4.14.1 GLS/SEN/SPE/BI-01-C [Unsupported Op Code]
  *****************************************************************************/

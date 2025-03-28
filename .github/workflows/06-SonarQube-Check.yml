@@ -16,21 +16,19 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: ${{ github.event.pull_request.head.user.login }}/${{ github.event.repository.name }}
-          ref: ${{ github.event.pull_request.head.ref }}        
+          ref: ${{ github.event.pull_request.head.ref }}
           path: 'projects'
           fetch-depth: '0'
 
       - name: Trigger Workflow
         id: trigger
         run: |
-          export GH_PAGES_FOLDER=${{ github.event.pull_request.head.user.login }}_${{ github.event.repository.name }}
-          export fork_repo=${{ github.event.pull_request.head.user.login }}/${{ github.event.repository.name }}
 
           response=$(curl -X POST \
             -H "Accept: application/vnd.github.v3+json" \
             -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN }}" \
             https://api.github.com/repos/SiliconLabsSoftware/aep_ci_tools/actions/workflows/sandbox_trigger_sonar.yml/dispatches \
-            -d '{"ref":"main","inputs":{"repository": "${fork_repo}" ,"ref":"${{ github.head_ref }}","gh_pages_folder":"${GH_PAGES_FOLDER}" }}')
+            -d '{"ref":"main","inputs":{"repository": "${{ github.event.pull_request.head.user.login }}/${{ github.event.repository.name }}" ,"ref":"${{ github.head_ref }}","gh_pages_folder":"${{ github.event.pull_request.head.user.login }}_${{ github.event.repository.name }}" }}')
 
           echo "Triggered workflow: $response"
           if echo "$response" | grep -q '"message": "Not Found"'; then
@@ -49,7 +47,7 @@ jobs:
             -H "Authorization: token ${{ secrets.PERSONAL_ACCESS_TOKEN }}" \
             https://api.github.com/repos/SiliconLabsSoftware/aep_ci_tools/actions/runs \
             | jq '.workflow_runs[] | select(.name=="Trigger_Sonar") | .id' | head -n 1)
-          echo "Run ID: $run_id"
+          echo "Run ID: https://github.com/SiliconLabsSoftware/aep_ci_tools/actions/runs/$run_id"
 
           start_time=$(date +%s)
           while true; do

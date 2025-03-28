@@ -2,15 +2,7 @@ name: 00-Check-Code-Convention
 on:
   pull_request_target:
     types: [opened, synchronize, edited]
-  # push:
-  #   branches-ignore:
-  #     - main
-  #     - "tests/**"
-  # pull_request:
-  #   branches:
-  #     - main
-  #     - develop
-  #     - "release/**"
+
   workflow_dispatch:
     inputs:
       branch:
@@ -19,51 +11,53 @@ on:
         default: 'dev'
 
 jobs:
-  job1:
+  code-convention:
     name: Check coding convention
     runs-on: ubuntu-20.04
     steps:
-    - name: Trigger
-      run: echo "Triggered by ${{github.event_name}} event"
-    - name: Check Branch Input
-      run: |
-            if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-              if [ -z "${{ github.event.inputs.branch }}" ]; then
-                echo "Branch input is required for manual trigger."
-                exit 1
-              fi
+      - name: Trigger
+        run: echo "Triggered by ${{github.event_name}} event"
+
+      - name: Check Branch Input
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            if [ -z "${{ github.event.inputs.branch }}" ]; then
+              echo "Branch input is required for manual trigger."
+              exit 1
             fi
+          fi
 
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        ref: "${{ github.event_name == 'workflow_dispatch' && github.event.inputs.branch || github.ref }}"
+      - name: Checkout fork repo
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ github.event.pull_request.head.user.login }}/${{ github.event.repository.name }}
+          ref: ${{ github.event.pull_request.head.ref }}
 
-    - name: Log Current Branch and Commit
-      run: |
+      - name: Log Current Branch and Commit
+        run: |
           echo "Current branch: $(git rev-parse --abbrev-ref HEAD)"
           echo "Current commit: $(git rev-parse HEAD)"
 
-    - name: Install python3.11
-      if: always()
-      run: |
-        sudo apt-get update
-        sudo apt-get upgrade -y
-        sudo apt-get install --no-install-recommends -y \
-          software-properties-common \
-          gpg \
-          gpg-agent \
-          curl
-        sudo add-apt-repository ppa:deadsnakes/ppa -y
-        sudo apt update
-        sudo apt-get install --no-install-recommends -y python3.11
-        python3.11 --version
-        which python3.11
-        sudo apt install python3.11-full
-        curl -sS https://bootstrap.pypa.io/get-pip.py | sudo python3.11
+      - name: Install python3.11
+        if: always()
+        run: |
+          sudo apt-get update
+          sudo apt-get upgrade -y
+          sudo apt-get install --no-install-recommends -y \
+            software-properties-common \
+            gpg \
+            gpg-agent \
+            curl
+          sudo add-apt-repository ppa:deadsnakes/ppa -y
+          sudo apt update
+          sudo apt-get install --no-install-recommends -y python3.11
+          python3.11 --version
+          which python3.11
+          sudo apt install python3.11-full
+          curl -sS https://bootstrap.pypa.io/get-pip.py | sudo python3.11
 
-    - name: Install commit check tools
-      run: |
+      - name: Install commit check tools
+        run: |
           echo "Installing pre-commit ..."
           python3.11 -m pip install pre-commit
           echo "Installing uncrustify 0.64 from source code  ..."
@@ -83,53 +77,53 @@ jobs:
           echo "Install clang-tidy and cppcheck ..."
           sudo apt install clang-tidy cppcheck
 
-    - name: Run test
-      run: |
-        pre-commit install
-        pre-commit run --all-files 2>&1 | tee CodingConventionTool.txt
+      - name: Run test
+        run: |
+          pre-commit install
+          pre-commit run --all-files 2>&1 | tee CodingConventionTool.txt
 
-    # - name: Upload Result
-    #   if: always()
-    #   uses: actions/upload-artifact@v4.3.4
-    #   with:
-    #     name: CodingConventionResult
-    #     path: CodingConventionTool.txt
-    #     retention-days: 90
+      # - name: Upload Result
+      #   if: always()
+      #   uses: actions/upload-artifact@v4.3.4
+      #   with:
+      #     name: CodingConventionResult
+      #     path: CodingConventionTool.txt
+      #     retention-days: 90
 
-    - name: Check log file to set status of the job
-      run: |
-        keywords=("Failed")
-        for keyword in "${keywords[@]}"; do
-          if grep -q "$keyword" CodingConventionTool.txt; then
-            echo "Keyword '$keyword' found in the file."
-            git diff
+      - name: Check log file to set status of the job
+        run: |
+          keywords=("Failed")
+          for keyword in "${keywords[@]}"; do
+            if grep -q "$keyword" CodingConventionTool.txt; then
+              echo "Keyword '$keyword' found in the file."
+              git diff
 
-            git diff --name-only > uncrustify_formatted_list.txt
-            # Failing build, we will send logs and the formatted files to output
-            if [ -s uncrustify_formatted_list.txt ]; then
+              git diff --name-only > uncrustify_formatted_list.txt
+              # Failing build, we will send logs and the formatted files to output
+              if [ -s uncrustify_formatted_list.txt ]; then
                 mkdir uncrustify_formatted_files
                 lines=$(cat uncrustify_formatted_list.txt)
                 for line in $lines
                 do
-                    git --no-pager diff $line > $line.log
-                    echo "$line.log" >> uncrustify_log_list.txt
+                  git --no-pager diff $line > $line.log
+                  echo "$line.log" >> uncrustify_log_list.txt
                 done
                 xargs -a uncrustify_formatted_list.txt cp --parents -n -t uncrustify_formatted_files/ &>> debug.log
                 xargs -a uncrustify_log_list.txt cp --parents -n -t uncrustify_formatted_files/ &>> debug.log
                 jar -cvf uncrustify_formatted_files.zip uncrustify_formatted_files/ &>> debug.log
+              fi
+
+              exit 1
+            else
+              echo "Keyword '$keyword' not found in the file."
             fi
+          done
 
-            exit 1
-          else
-            echo "Keyword '$keyword' not found in the file."
-          fi
-        done
-
-    - name: Upload Result
-      if: always()
-      uses: actions/upload-artifact@v4.3.4
-      with:
-        name: CodingConventionResult
-        path: uncrustify_formatted_files
-        retention-days: 90
-        if-no-files-found: ignore
+      - name: Upload Result
+        if: always()
+        uses: actions/upload-artifact@v4.3.4
+        with:
+          name: CodingConventionResult
+          path: uncrustify_formatted_files
+          retention-days: 90
+          if-no-files-found: ignore

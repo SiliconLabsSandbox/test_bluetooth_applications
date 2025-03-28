@@ -29,18 +29,18 @@ jobs:
 
       - name: Poll the change
         run: |
-          target_branch=${{ github.event.repository.default_branch }}
-
           cd projects
-          git fetch origin $target_branch
-          git diff --name-only origin/$target_branch HEAD | grep '/' | cut -d'/' -f1 | sort | uniq > git_log.txt
-          # Skip check if the changed files are at the root path: e.g. README.md, .github, LICENSE
+          
+          git remote add upstream https://github.com/SiliconLabsSandbox/test_bluetooth_applications.git
+          git fetch upstream
+          git diff --name-only upstream/main HEAD | grep '/' | cut -d'/' -f1 | sort | uniq > git_log.txt
           grep -v "README.md\\|.github\\|LICENSE\\|templates.xml\\|tools" git_log.txt > git_diff.txt
+          
           xargs -I{} -a git_diff.txt find {} -type f -name "*.[ch]" > source_list.txt
           xargs -I{} -a git_diff.txt find {} -type f -name "*.slcp" > solution_list.txt
+          
           if ! [ -s source_list.txt -o -s solution_list.txt ]; then
-            printf 'Skip check. No changed project found.'
-            exit 1
+            printf 'Skip check. No changed project found.' >> git_diff.txt
           fi
 
           # For debug

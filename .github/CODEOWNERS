@@ -1,2 +1,2 @@
 # This is a # Default codeowners for the repository
-* @SiliconLabsSandbox/ci_cd_team
+/tools/ @SiliconLabsSandbox/ci_cd_team
